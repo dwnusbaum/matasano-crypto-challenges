@@ -1,9 +1,10 @@
+{-# OPTIONS_GHC -Wall #-}
+
 module Challenge4 (
     main
 ) where
 
 import Data.List (sortBy)
-import Data.Map (Map)
 import Data.Ord (comparing)
 
 import Challenge3 hiding (main)

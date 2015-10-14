@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wall #-}
+
 module Challenge1 (
     main
 ) where
@@ -8,7 +10,6 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C
 
 import Hex
-import Base64
 
 hexstring1 :: String
 hexstring1 = "1c0111001f010100061a024b53535009181c"
