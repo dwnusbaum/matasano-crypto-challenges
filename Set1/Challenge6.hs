@@ -3,7 +3,7 @@
 module Challenge6 (
     main,
     hammingDistance,
-    findRepeatingKeyXor
+    crackRepeatingKeyXor
 ) where
 
 import Data.Bits
@@ -36,8 +36,8 @@ possibleKeyLengths ciphertext = best $ map (\i -> (i, averageDistance i)) [2..40
                 thirdBlock = take i $ drop (2 * i) ciphertextBytes
         ciphertextBytes = B.unpack $ C.pack ciphertext
 
-crackRepeatingKeyXor :: String -> Int -> String
-crackRepeatingKeyXor ciphertext keyLength = map (snd . crackSingleByteXor) sameByteBlocks
+crackGivenLengthRepeatingKeyXor :: String -> Int -> String
+crackGivenLengthRepeatingKeyXor ciphertext keyLength = map (snd . crackSingleByteXor) sameByteBlocks
     where ciphertextBytes = B.unpack $ C.pack ciphertext
           blocks = ciphertextBytes `chunksOf` keyLength
           sameByteBlocks = map (C.unpack . B.pack) $ transpose blocks
@@ -46,14 +46,14 @@ chunksOf :: [a] -> Int -> [[a]]
 chunksOf [] _ = [[]]
 chunksOf list i = take i list : chunksOf (drop i list) i
 
-findRepeatingKeyXor :: String -> (String, String)
-findRepeatingKeyXor ciphertext = best $ map (\k -> (repeatingKeyXor ciphertext k, k)) possibleKeys
+crackRepeatingKeyXor :: String -> (String, String)
+crackRepeatingKeyXor ciphertext = best $ map (\k -> (repeatingKeyXor ciphertext k, k)) possibleKeys
     where best = minimumBy (comparing (naturalLanguageScore . fst))
           keyLengths = take 4 $ possibleKeyLengths ciphertext
-          possibleKeys = map (crackRepeatingKeyXor ciphertext) keyLengths
+          possibleKeys = map (crackGivenLengthRepeatingKeyXor ciphertext) keyLengths
 
 main :: IO ()
 main = do
     file <- readFile "data/6.txt"
     let decodedFile = decodeBase64 $ filter (/= '\n') file
-    print $ findRepeatingKeyXor decodedFile
+    print $ crackRepeatingKeyXor decodedFile
