@@ -34,9 +34,10 @@ englishFrequencies = M.fromList $ zip "abcdefghijklmnopqrstuvwxyz " frequencies
 
 naturalLanguageScore :: String -> Double
 naturalLanguageScore s = go . M.toList . stringToFrequencies $ s
-  where go [] = 0
+  where sLen = fromIntegral (length s)
+        go [] = 0
         go ((x, xFreq):xs) = case M.lookup (toLower x) englishFrequencies of
-            Just engFreq -> chiSquared xFreq (engFreq * fromIntegral (length s)) + go xs
+            Just engFreq -> chiSquared xFreq (engFreq * sLen) + go xs
             Nothing -> chiSquared xFreq 0 + go xs
         chiSquared obsFreq expFreq = ((obsFreq - expFreq) ^ (2 :: Int)) / (obsFreq + expFreq)
 
@@ -51,4 +52,3 @@ crackSingleByteXor s = bestCandidate $ map decrypt possibleKeys
 
 main :: IO ()
 main = print $ crackSingleByteXor $ decodeHex hexstring
-
