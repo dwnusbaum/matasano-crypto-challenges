@@ -40,7 +40,9 @@ decodeBase64 = C.unpack . B.pack . base64StringToWord8List . takeWhile (/= '=')
             2 -> take 2 $ decodeQuartet $ map base64CharToWord8 $ take 2 ws ++ "AA"
             3 -> take 3 $ decodeQuartet $ map base64CharToWord8 $ take 3 ws ++ "A"
             _ -> decodeQuartet (map base64CharToWord8 $ take 4 ws) ++ base64StringToWord8List (drop 4 ws)
-          where base64CharToWord8 x = fromJust $ lookup x $ zip base64Alphabet [0..63]
+          where base64CharToWord8 x = case lookup x $ zip base64Alphabet [0..63] of
+                    Nothing -> error $ show x
+                    Just w -> w
 
         decodeQuartet :: [Word8] -> [Word8]
         decodeQuartet [a, b, c, d] = [first, second, third]
