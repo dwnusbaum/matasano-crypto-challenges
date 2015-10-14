@@ -17,7 +17,7 @@ repeatingKeyXor string key = C.unpack $ B.pack $ process stringBytes repeatedKey
     where process [] _ = []
           process _ [] = error "Key should not have been shorter than input."
           process (s:ss) (k:ks) = s `xor` k : process ss ks
-          repeatedKey = concat $ replicate ((length stringBytes) `div` (length keyBytes) + 1) keyBytes
+          repeatedKey = concat $ replicate (length stringBytes `div` length keyBytes + 1) keyBytes
           stringBytes = B.unpack $ C.pack string
           keyBytes = B.unpack $ C.pack key
 

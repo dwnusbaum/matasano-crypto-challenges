@@ -8,7 +8,7 @@ module Challenge3 (
 
 import Data.Bits
 import Data.Char (toLower)
-import Data.List (sortBy)
+import Data.List (minimumBy)
 import Data.Map (Map)
 import Data.Ord (comparing)
 
@@ -22,7 +22,7 @@ hexstring :: String
 hexstring = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"
 
 stringToFrequencies :: String -> Map Char Double
-stringToFrequencies string = go string
+stringToFrequencies = go
   where go [] = M.empty
         go (s:ss) = M.alter updateFrequency (toLower s) $ stringToFrequencies ss
           where updateFrequency Nothing = Just 1
@@ -42,7 +42,7 @@ naturalLanguageScore s = go . M.toList . stringToFrequencies $ s
 
 crackSingleByteXor :: String -> (String, Char)
 crackSingleByteXor s = bestCandidate $ map decrypt possibleKeys
-  where bestCandidate = head . sortBy (comparing (naturalLanguageScore . fst))
+  where bestCandidate = minimumBy (comparing (naturalLanguageScore . fst))
         decrypt key = (plaintext key, keyChar key)
           where plaintext = C.unpack . B.pack . zipWith xor input
                 keyChar = head . C.unpack . B.pack

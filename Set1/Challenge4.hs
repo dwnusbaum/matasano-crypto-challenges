@@ -4,13 +4,13 @@ module Challenge4 (
     main
 ) where
 
-import Data.List (sortBy)
+import Data.List (minimumBy)
 import Data.Ord (comparing)
 
 import Challenge3 hiding (main)
 
 findSingleByteXor :: [String] -> (String, Char)
-findSingleByteXor xs = last $ sortBy (comparing (naturalLanguageScore . fst)) output
+findSingleByteXor xs = minimumBy (comparing (naturalLanguageScore . fst)) output
   where output = map crackSingleByteXor xs
 
 main :: IO ()
