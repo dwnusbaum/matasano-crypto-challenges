@@ -9,9 +9,11 @@ import Data.Ord (comparing)
 
 import Challenge3 hiding (main)
 
+import Hex
+
 findSingleByteXor :: [String] -> (String, Char)
 findSingleByteXor xs = minimumBy (comparing (naturalLanguageScore . fst)) output
-  where output = map crackSingleByteXor xs
+  where output = map (crackSingleByteXor . decodeHex) xs
 
 main :: IO ()
 main = do
