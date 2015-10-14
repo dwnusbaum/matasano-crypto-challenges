@@ -1,5 +1,6 @@
 module Challenge3 (
     main,
+    crackSingleByteXor,
     naturalLanguageScore,
 ) where
 
@@ -35,10 +36,15 @@ naturalLanguageScore s = go $ M.toList $ stringToFrequencies s
             Just f -> (f * snd x) + go xs
             Nothing -> go xs
 
+crackSingleByteXor :: String -> (String, Char)
+crackSingleByteXor s = bestCandidate $ map decrypt possibleKeys
+  where bestCandidate = last . sortBy (comparing (naturalLanguageScore . fst))
+        decrypt key = (plaintext key, keyChar key)
+          where plaintext = C.unpack . B.pack . zipWith xor input
+                keyChar = head . C.unpack . B.pack
+        possibleKeys = map (replicate (length input) . fromInteger) [0..255]
+        input = B.unpack $ C.pack $ decodeHex s
+
 main :: IO ()
-main = putStrLn $ fst $ last $ sortBy (comparing snd) $ possiblePlaintexts
-  where possiblePlaintexts = map ((\x -> (x, naturalLanguageScore x)) . xorAndUnpack) allChars
-        xorAndUnpack = C.unpack . B.pack . zipWith xor input
-        allChars = map (replicate (length input) . fromInteger) [0..255]
-        input = B.unpack $ C.pack $ decodeHex hexstring
+main = print $ crackSingleByteXor hexstring
 
