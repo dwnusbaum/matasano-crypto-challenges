@@ -13,7 +13,7 @@ import qualified Data.ByteString.Char8 as C
 import Hex
 
 repeatingKeyXor :: String -> String -> String
-repeatingKeyXor string key = encodeHex $ C.unpack $ B.pack $ process stringBytes repeatedKey
+repeatingKeyXor string key = C.unpack $ B.pack $ process stringBytes repeatedKey
     where process [] _ = []
           process _ [] = error "Key should not have been shorter than input."
           process (s:ss) (k:ks) = s `xor` k : process ss ks
@@ -22,6 +22,6 @@ repeatingKeyXor string key = encodeHex $ C.unpack $ B.pack $ process stringBytes
           keyBytes = B.unpack $ C.pack key
 
 main :: IO ()
-main = putStrLn $ repeatingKeyXor input key
+main = putStrLn $ encodeHex $ repeatingKeyXor input key
   where input = "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal"
         key = "ICE"
