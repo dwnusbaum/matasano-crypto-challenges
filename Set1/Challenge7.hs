@@ -7,7 +7,7 @@ module Challenge7 (
 import Data.Bits
 import Data.List (minimumBy, sortBy, transpose)
 import Data.Ord (comparing)
-import Data.Word (Word8, Word16, Word32)
+import Data.Word (Word8, Word32)
 
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C
@@ -17,8 +17,8 @@ import Challenge6 (chunksOf)
 import Base64
 
 type BlockSize = Int
-type Cipher = Key -> [Word16] -> [Word16]
-type Key = [Word16]
+type Cipher = Key -> [Word8] -> [Word8]
+type Key = [Word8]
 type Mode = BlockCipher -> Cipher
 
 data BlockCipher = BlockCipher {
@@ -40,16 +40,10 @@ ecb :: BlockCipher -> Mode -> Cipher
 ecb cipher mode key input = concatMap (mode cipher key) blocks
   where blocks = input `chunksOf` blockSize cipher
 
-word8ListToWord16List :: [Word8] -> [Word16]
-word8ListToWord16List = undefined
-
-word16ListToWord8List :: [Word16] -> [Word8]
-word16ListToWord8List = undefined
-
 main :: IO ()
 main = do
     file <- readFile "data/7.txt"
-    let fileBytes = word8ListToWord16List $ B.unpack $ C.pack $ decodeBase64 $ filter (/= '\n') file
-    let key = word8ListToWord16List $ B.unpack $ C.pack "YELLOW SUBMARINE"
+    let fileBytes = B.unpack $ C.pack $ decodeBase64 $ filter (/= '\n') file
+    let key =  B.unpack $ C.pack "YELLOW SUBMARINE"
     let decrypted = ecb aes128 decrypt key fileBytes
-    putStrLn $ C.unpack $ B.pack $ word16ListToWord8List decrypted
+    putStrLn $ C.unpack $ B.pack decrypted
