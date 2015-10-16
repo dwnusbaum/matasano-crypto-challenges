@@ -3,7 +3,8 @@
 module Challenge6 (
     main,
     hammingDistance,
-    crackRepeatingKeyXor
+    crackRepeatingKeyXor,
+    chunksOf
 ) where
 
 import Data.Bits
