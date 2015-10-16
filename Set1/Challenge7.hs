@@ -43,10 +43,13 @@ ecb cipher mode key input = concatMap (mode cipher key) blocks
 word8ListToWord16List :: [Word8] -> [Word16]
 word8ListToWord16List = undefined
 
+word16ListToWord8List :: [Word16] -> [Word8]
+word16ListToWord8List = undefined
+
 main :: IO ()
 main = do
     file <- readFile "data/7.txt"
-    let fileBytes = B.unpack $ C.pack $ decodeBase64 $ filter (/= '\n') file
-    let key = B.unpack $ C.pack "YELLOW SUBMARINE"
+    let fileBytes = word8ListToWord16List $ B.unpack $ C.pack $ decodeBase64 $ filter (/= '\n') file
+    let key = word8ListToWord16List $ B.unpack $ C.pack "YELLOW SUBMARINE"
     let decrypted = ecb aes128 decrypt key fileBytes
-    putStrLn $ C.unpack $ B.pack decrypted
+    putStrLn $ C.unpack $ B.pack $ word16ListToWord8List decrypted
