@@ -1,5 +1,4 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# LANGUAGE BangPatterns #-}
 
 module AES (
     BlockCipher(..),
@@ -58,13 +57,12 @@ chunksOfV vector i
 
 keyExpansion :: Key -> Vector (Vector Word8)
 keyExpansion key = loop 4 keyState
-  where loop !i !keys
-          | i >= 44 = keys
-          | i `mod` 4 == 0 = loop (i + 1) $ V.force $ keys `V.snoc` (keys ! (i - 4) `fieldPolyAdd` ((subWord $ rotWord temp) `fieldPolyAdd` rCon (i `div` 4)))
+  where loop 44 keys = keys
+        loop i keys
+          | i `mod` 4 == 0 = loop (i + 1) $ keys `V.snoc` (keys ! (i - 4) `fieldPolyAdd` ((subWord $ rotWord temp) `fieldPolyAdd` rCon (i `div` 4)))
           | otherwise = loop (i + 1) $ keys `V.snoc` (keys ! (i - 4) `fieldPolyAdd` temp)
           where temp = keys ! (i - 1)
         keyState = V.fromList key `chunksOfV` 4
-        rCon i = V.fromList [0x02 ^ (i - 1), 0x0, 0x0, 0x0]
 
 subWord :: Vector Word8 -> Vector Word8
 subWord = V.map (\byte -> (sBox ! upperHalf byte) ! lowerHalf byte)
@@ -98,7 +96,6 @@ sBox = V.fromList [
 
 shiftRows :: State -> State
 shiftRows state = V.imap (\i -> applyN i rotWord) state
-  where applyN n f = foldr (.) id (replicate n f)
 
 mixColumns :: State -> State
 mixColumns = transposeV . V.map multiplyFixed . transposeV
@@ -117,6 +114,7 @@ decryptAES key = fromStateArray . inverseCipher keySchedule . toStateArray
   where inverseCipher = undefined
         keySchedule = undefined key
 
+main :: IO ()
 main = print $ V.map (V.map showHex) $ keyExpansion key
   where key = [0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c]
         state = V.fromList [
