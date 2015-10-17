@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wall #-}
+
 module RijndaelField (
     fieldAdd,
     fieldMultiply,
@@ -5,7 +7,9 @@ module RijndaelField (
     fieldPolyMultiply,
     multiplyFixed,
     multiplyFixedInverse,
-    rotWord
+    rCon,
+    rotWord,
+    applyN
 ) where
 
 import Data.Bits
@@ -23,12 +27,23 @@ fieldAdd = xor
 fieldMultiply :: Word8 -> Word8 -> Word8
 fieldMultiply a b
   | b == 0x01 = a
-  | b `mod` 0x02 == 0 = xtime a `fieldMultiply` (b `div` 2)
+  | popCount b == 1 = applyN (log2 $ fromIntegral b) xtime a
   | otherwise = foldl' (\acc x -> fieldMultiply a (bit x) `xor` acc) 0x0 $ bitIndices b
-  where xtime a = if a `testBit` 7
-            then (a `shiftL` 1) `xor` 0x1b
-            else a `shiftL` 1
-        bitIndices = flip filter [7,6..0] . testBit
+  where bitIndices = flip filter [7,6..0] . testBit
+
+xtime :: Word8 -> Word8
+xtime x = if x `testBit` 7
+            then (x `shiftL` 1) `xor` 0x1b
+            else x `shiftL` 1
+
+log2 :: Int -> Int
+log2 n
+  | n < 1 = error "argument of logarithm must be positive"
+  | otherwise = go 0 1
+  where
+    go pow prod
+      | prod < n = go (pow + 1) (2 * prod)
+      | otherwise = pow
 
 -- Add 2 polynomials whose coefficients are elements of the Rijndael finite
 -- field.
@@ -59,3 +74,9 @@ multiplyFixedInverse = fieldPolyMultiply $ V.fromList [0x0e, 0x09, 0x0d, 0x0b]
 -- field to the left.
 rotWord :: Vector Word8 -> Vector Word8
 rotWord = fieldPolyMultiply $ V.fromList [0x00, 0x00, 0x00, 0x01]
+
+rCon :: Int -> Vector Word8
+rCon i = V.fromList [applyN (i - 1) (fieldMultiply 0x02) 0x01, 0x0, 0x0, 0x0]
+
+applyN :: Int -> (a -> a) -> a -> a
+applyN n f = foldr (.) id (replicate n f)
