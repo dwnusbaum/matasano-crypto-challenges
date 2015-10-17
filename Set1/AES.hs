@@ -32,31 +32,26 @@ data BlockCipher = BlockCipher {
 aes128 :: BlockCipher
 aes128 = BlockCipher encryptAES decryptAES 16
 
-toStateArray :: [Word8] -> State
-toStateArray xs = V.fromList $ map rows [0..3]
-  where rows r = V.fromList $ map (\c -> vs ! (r + c)) [0, 4, 8, 12]
-        vs = V.fromList xs
-
-fromStateArray :: State -> [Word8]
-fromStateArray xs = concatMap columns [0..3]
-  where columns c = map (\r -> (xs ! r) ! c) [0..3]
-
+-- Encrypts a single block of data using AES and the given key. The input must
+-- have exactly 16 bytes.
 encryptAES :: Cipher
-encryptAES key = fromStateArray . cipher key . toStateArray
-
-cipher :: Key -> State -> State
-cipher key state = lastRound $ foldl' (\acc i -> aesRound i acc) (addRoundKey (keySchedule ! 0) state) [1..9]
-  where aesRound i = (keySchedule ! i `addRoundKey`) . mixColumns . shiftRows . subBytes
+encryptAES key = fromStateArray . cipher . toStateArray
+  where cipher state = lastRound $ foldl' (\acc i -> aesRound i acc) (addRoundKey (keySchedule ! 0) state) [1..9]
+        aesRound i = (keySchedule ! i `addRoundKey`) . mixColumns . shiftRows . subBytes
         lastRound = addRoundKey (keySchedule ! 10) . shiftRows . subBytes
-        keySchedule = keyExpansion key `chunksOfV` 4
+        keySchedule = keyExpansion key
 
-chunksOfV :: Vector a -> Int -> Vector (Vector a)
-chunksOfV vector i
-  | V.null vector = V.empty
-  | otherwise = V.take i vector `V.cons` chunksOfV (V.drop i vector) i
+-- Decrypts a single block of data using AES and the given key. The input must
+-- have exactly 16 bytes.
+decryptAES :: Cipher
+decryptAES key = fromStateArray . inverseCipher . toStateArray
+  where inverseCipher = undefined
+        keySchedule = keyExpansion key
 
-keyExpansion :: Key -> Vector (Vector Word8)
-keyExpansion key = loop 4 keyState
+-- Turn the 16 byte key into a vector of 11 round keys, where each round key is
+-- a vector of 4 4-Byte words
+keyExpansion :: Key -> Vector RoundKey
+keyExpansion key = (loop 4 keyState) `chunksOfV` 4
   where loop 44 keys = keys
         loop i keys
           | i `mod` 4 == 0 = loop (i + 1) $ keys `V.snoc` (keys ! (i - 4) `fieldPolyAdd` ((subWord $ rotWord temp) `fieldPolyAdd` rCon (i `div` 4)))
@@ -64,11 +59,13 @@ keyExpansion key = loop 4 keyState
           where temp = keys ! (i - 1)
         keyState = V.fromList key `chunksOfV` 4
 
+-- Substitute every byte in vector of bytes using the sBox
 subWord :: Vector Word8 -> Vector Word8
 subWord = V.map (\byte -> (sBox ! upperHalf byte) ! lowerHalf byte)
   where upperHalf = fromIntegral . (`shiftR` 4)
         lowerHalf = fromIntegral . (.&. 0x0F)
 
+-- Substitute every byte in the state using the sBox
 subBytes :: State -> State
 subBytes = V.map subWord
 
@@ -94,25 +91,44 @@ sBox = V.fromList [
         V.fromList [0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16]
     ]
 
+-- Rotates each row of the state to the left according to the index of the row.
+-- So the 0th row rotates 0 times, the 1st row rotates 1 times, etc.
 shiftRows :: State -> State
 shiftRows state = V.imap (\i -> applyN i rotWord) state
 
+-- Mutliplies the columns by the fixed, invertible polynomial in the Rijndael
+-- finite field.
 mixColumns :: State -> State
 mixColumns = transposeV . V.map multiplyFixed . transposeV
+  where multiplyFixed = fieldPolyMultiply $ V.fromList [0x02, 0x01, 0x01, 0x03]
 
+-- Adds the round key to the state
+addRoundKey :: RoundKey -> State -> State
+addRoundKey roundKey = transposeV . V.zipWith fieldPolyAdd roundKey . transposeV
+
+-- Transforms a list of bytes into the state array used by the cipher
+toStateArray :: [Word8] -> State
+toStateArray xs = V.fromList $ map rows [0..3]
+  where rows r = V.fromList $ map (\c -> vs ! (r + 4 * c)) [0..3]
+        vs = V.fromList xs
+
+-- Transforms the state array back into a list of bytes
+fromStateArray :: State -> [Word8]
+fromStateArray xs = concatMap columns [0..3]
+  where columns c = map (\r -> (xs ! r) ! c) [0..3]
+
+-- Vector equivalent of chunksOf
+chunksOfV :: Vector a -> Int -> Vector (Vector a)
+chunksOfV vector i
+  | V.null vector = V.empty
+  | otherwise = V.take i vector `V.cons` chunksOfV (V.drop i vector) i
+
+-- Vector equivalent of transpose
 transposeV :: Vector (Vector a) -> Vector (Vector a)
 transposeV = V.fromList . go
   where go xs
           | V.null (V.head xs) = []
           | otherwise = V.map V.head xs : go (V.map V.tail xs)
-
-addRoundKey :: RoundKey -> State -> State
-addRoundKey roundKey = transposeV . V.zipWith fieldPolyAdd roundKey . transposeV
-
-decryptAES :: Cipher
-decryptAES key = fromStateArray . inverseCipher keySchedule . toStateArray
-  where inverseCipher = undefined
-        keySchedule = undefined key
 
 main :: IO ()
 main = print $ (map showHex) $ encryptAES key state

@@ -5,7 +5,6 @@ module RijndaelField (
     fieldMultiply,
     fieldPolyAdd,
     fieldPolyMultiply,
-    multiplyFixed,
     multiplyFixedInverse,
     rCon,
     rotWord,
@@ -59,11 +58,6 @@ fieldPolyMultiply a b = V.fromList [
         ((a ! 2) `fieldMultiply` (b ! 0)) `xor` ((a ! 1) `fieldMultiply` (b ! 1)) `xor` ((a ! 0) `fieldMultiply` (b ! 2)) `xor` ((a ! 3) `fieldMultiply` (b ! 3)),
         ((a ! 3) `fieldMultiply` (b ! 0)) `xor` ((a ! 2) `fieldMultiply` (b ! 1)) `xor` ((a ! 1) `fieldMultiply` (b ! 2)) `xor` ((a ! 0) `fieldMultiply` (b ! 3))
     ]
-
--- | Multiplies a polynomial whose coefficients are elements of the Rijndael
--- finite field by a fixed element, so that the multiplication can be inverted.
-multiplyFixed :: Vector Word8 -> Vector Word8
-multiplyFixed = fieldPolyMultiply $ V.fromList [0x02, 0x01, 0x01, 0x03]
 
 -- | Multiplies a polynomial whose coefficients are elements of the Rijndael
 -- finite field by the inverse of a fixed element.
