@@ -8,7 +8,7 @@ module Challenge7 (
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C
 
-import AES hiding (main)
+import AES
 import Base64
 import Challenge6 (chunksOf)
 

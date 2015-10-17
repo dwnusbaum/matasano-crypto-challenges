@@ -5,7 +5,6 @@ module AES (
     Cipher,
     CipherMode,
     aes128,
-    main
 ) where
 
 import Prelude hiding (round)
@@ -31,7 +30,7 @@ data BlockCipher = BlockCipher {
 }
 
 aes128 :: BlockCipher
-aes128 = BlockCipher encryptAES decryptAES 16
+aes128 = BlockCipher decryptAES encryptAES 16
 
 -- Encrypts a single block of data using AES and the given key. The input must
 -- have exactly 16 bytes.
@@ -54,10 +53,10 @@ decryptAES key = fromStateArray . inverseCipher . toStateArray
 -- Turn the 16 byte key into a vector of 11 round keys, where each round key is
 -- a vector of 4 4-Byte words
 keyExpansion :: Key -> Vector RoundKey
-keyExpansion key = (loop 4 keyState) `chunksOfV` 4
+keyExpansion key = loop 4 keyState `chunksOfV` 4
   where loop 44 keys = keys
         loop i keys
-          | i `mod` 4 == 0 = loop (i + 1) $ keys `V.snoc` (keys ! (i - 4) `fieldPolyAdd` ((subWord $ rotWord temp) `fieldPolyAdd` rCon (i `div` 4)))
+          | i `mod` 4 == 0 = loop (i + 1) $ keys `V.snoc` (keys ! (i - 4) `fieldPolyAdd` (subWord (rotWord temp) `fieldPolyAdd` rCon (i `div` 4)))
           | otherwise = loop (i + 1) $ keys `V.snoc` (keys ! (i - 4) `fieldPolyAdd` temp)
           where temp = keys ! (i - 1)
         keyState = V.fromList key `chunksOfV` 4
@@ -127,12 +126,12 @@ inverseSBox = V.fromList [
 -- Rotates each row of the state to the left according to the index of the row.
 -- The 0th row rotates 0 times, the 1st row rotates 1 times, etc.
 shiftRows :: State -> State
-shiftRows state = V.imap (\i -> applyN i rotWord) state
+shiftRows = V.imap (`applyN` rotWord)
 
 -- This function is the inverse of shiftRows. It rotates the 0th row 4-0=4
 -- times to the left, the 1st row 4-1=3 times, etc.
 inverseShiftRows :: State -> State
-inverseShiftRows state = V.imap (\i -> applyN (4 - i) rotWord) state
+inverseShiftRows = V.imap (\i -> applyN (4 - i) rotWord)
 
 -- Multiplies the columns by the fixed, invertible polynomial in the Rijndael
 -- finite field.
@@ -172,12 +171,3 @@ transposeV = V.fromList . go
   where go xs
           | V.null (V.head xs) = []
           | otherwise = V.map V.head xs : go (V.map V.tail xs)
-
-main :: IO ()
-main = print $ (map showHex) $ decryptAES key $ encryptAES key state
-  where key = [0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c]
-        state = [0x32, 0x43 , 0xf6 , 0xa8 , 0x88 , 0x5a , 0x30 , 0x8d , 0x31 , 0x31 , 0x98 , 0xa2 , 0xe0 , 0x37 , 0x07 , 0x34]
-        showHex b = (alphabet ! upperHalf b) : alphabet ! (lowerHalf b) : []
-          where upperHalf = fromIntegral . (`shiftR` 4)
-                lowerHalf = fromIntegral . (.&. 0x0F)
-                alphabet = V.fromList $ ['0'..'9'] ++ ['a'..'f']
