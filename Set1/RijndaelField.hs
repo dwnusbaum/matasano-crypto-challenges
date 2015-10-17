@@ -37,7 +37,7 @@ xtime x = if x `testBit` 7
 
 log2 :: Int -> Int
 log2 n
-  | n < 1 = error "argument of logarithm must be positive"
+  | n < 1 = error "log2: argument must be positive"
   | otherwise = go 0 1
   where
     go pow prod
