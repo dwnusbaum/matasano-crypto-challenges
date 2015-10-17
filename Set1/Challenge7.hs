@@ -8,11 +8,11 @@ module Challenge7 (
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C
 
-import AES
+import AES hiding (main)
 import Base64
 import Challenge6 (chunksOf)
 
-ecb :: BlockCipher -> Mode -> Cipher
+ecb :: BlockCipher -> CipherMode -> Cipher
 ecb cipher mode key input = concatMap (mode cipher key) blocks
   where blocks = input `chunksOf` blockSize cipher
 
