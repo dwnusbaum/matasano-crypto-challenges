@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wall #-}
+
 module Challenge7 (
     main,
     aes128,
@@ -5,18 +7,17 @@ module Challenge7 (
 ) where
 
 import Data.Bits
-import Data.List (minimumBy, sortBy, transpose)
-import Data.Ord (comparing)
-import Data.Word (Word8, Word32)
+import Data.Word (Word8)
+import Data.Vector (Vector, (!))
 
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C
-
-import Challenge6 (chunksOf)
+import qualified Data.Vector as V
 
 import Base64
+import Challenge6 (chunksOf)
+import RijndaelField
 
-type BlockSize = Int
 type Cipher = Key -> [Word8] -> [Word8]
 type Key = [Word8]
 type Mode = BlockCipher -> Cipher
@@ -30,11 +31,22 @@ data BlockCipher = BlockCipher {
 aes128 :: BlockCipher
 aes128 = BlockCipher encryptAES decryptAES 16
 
+toStateArray :: [Word8] -> Vector (Vector Word8)
+toStateArray xs = V.fromList $ map rows [0..3]
+  where rows r = V.fromList $ map (\c -> vs ! (r + c)) [0, 4, 8, 12]
+        vs = V.fromList xs
+
+fromStateArray :: Vector (Vector Word8) -> [Word8]
+fromStateArray xs = concatMap columns [0..3]
+  where columns c = map (\r -> (xs ! r) ! c) [0..3]
+
 encryptAES :: Cipher
-encryptAES key block = undefined
+encryptAES key = fromStateArray . cipher . toStateArray
+  where cipher = undefined
 
 decryptAES :: Cipher
-decryptAES key block = undefined
+decryptAES key = fromStateArray . inverseCipher . toStateArray
+  where inverseCipher = undefined
 
 ecb :: BlockCipher -> Mode -> Cipher
 ecb cipher mode key input = concatMap (mode cipher key) blocks
