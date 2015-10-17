@@ -44,7 +44,7 @@ crackGivenLengthRepeatingKeyXor ciphertext keyLength = map (snd . crackSingleByt
           sameByteBlocks = map (C.unpack . B.pack) $ transpose blocks
 
 chunksOf :: [a] -> Int -> [[a]]
-chunksOf [] _ = [[]]
+chunksOf [] _ = []
 chunksOf list i = take i list : chunksOf (drop i list) i
 
 crackRepeatingKeyXor :: String -> (String, String)
