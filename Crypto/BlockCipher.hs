@@ -1,40 +1,63 @@
+{-# OPTIONS_GHC -Wall #-}
+
 module Crypto.BlockCipher (
-    detectECBModeEncryption,
+    findECBModeEncryption,
     detectECBorCBC,
     encryptECBorCBC
 ) where
 
-import Data.Bits
 import Data.List (maximumBy)
 import Data.Ord (comparing)
 import Data.Word (Word8)
 import System.Random
 
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as C
 import qualified Data.Set as S
 
 import Crypto.AES
+import Crypto.PKCS7
+import Data.List.Utils
 
-type Ciphertext = [String]
+type Ciphertext = [Word8]
+type CiphertextBlocks = [Ciphertext]
 
 data BlockMode = ECB | CBC
   deriving (Show)
 
-detectECBModeEncryption :: [Ciphertext] -> (Ciphertext, Int)
-detectECBModeEncryption = maximumBy (comparing snd) . map detectRepeats
-  where detectRepeats ciphertext = (ciphertext, length ciphertext - S.size (S.fromList ciphertext))
+findECBModeEncryption :: [Ciphertext] -> (Ciphertext, Int)
+findECBModeEncryption cs = maximumBy (comparing snd) repeated
+    where repeated = map (\c -> (c, repeatedBlocks $ c `chunksOf` 16)) cs
 
-detectECBorCBC :: [Word8] -> BlockMode
-detectECBorCBC = undefined
+repeatedBlocks :: CiphertextBlocks -> Int
+repeatedBlocks blocks = length blocks - S.size (S.fromList blocks)
 
-encryptECBorCBC :: [Word8] -> IO [Word8]
-encryptECBorCBC bytes = do
+detectECBorCBC :: Ciphertext -> BlockMode
+detectECBorCBC bytes = if detectECBModeEncryption bytes
+    then ECB
+    else CBC
+  where detectECBModeEncryption = (> 0) . repeatedBlocks . (`chunksOf` 16)
+
+encryptECBorCBC :: String -> IO Ciphertext
+encryptECBorCBC plaintext = do
     key <- randomBytes 16
+    bytes' <- randomPaddingPlaintext
     mode <- randomRIO (0, 1) :: IO Int
     case mode of
-        0 -> return $ encrypt_AES128_ECB key bytes
+        0 -> do
+            putStrLn "The encryption oracele chose to encrypt using ECB."
+            return $ encrypt_AES128_ECB key bytes'
         1 -> do
+            putStrLn "The encryption oracele chose to encrypt using CBC."
             iv <- randomBytes 16
-            return $ encrypt_AES128_CBC iv key bytes
+            return $ encrypt_AES128_CBC iv key bytes'
+        _ -> error "BlockCipher.hs: The random number wasn't 0 or 1!"
+  where randomPaddingPlaintext = do
+            prefixLength <- randomRIO (5, 10)
+            suffixLength <- randomRIO (5, 10)
+            prefix <- randomBytes prefixLength
+            suffix <- randomBytes suffixLength
+            return $ padPlaintext 16 $ prefix ++ B.unpack (C.pack plaintext) ++ suffix
 
 randomBytes :: Int -> IO [Word8]
 randomBytes n = do
