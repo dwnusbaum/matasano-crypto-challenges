@@ -36,9 +36,9 @@ decodeBase64 :: String -> String
 decodeBase64 = C.unpack . B.pack . base64StringToWord8List . takeWhile (/= '=')
   where base64StringToWord8List [] = []
         base64StringToWord8List ws = case length ws of
-            1 -> error "Not possible"
-            2 -> take 2 $ decodeQuartet $ map base64CharToWord8 $ take 2 ws ++ "AA"
-            3 -> take 3 $ decodeQuartet $ map base64CharToWord8 $ take 3 ws ++ "A"
+            1 -> error "Base64.hs: Not possible"
+            2 -> take 2 $ decodeQuartet $ map base64CharToWord8 $ ws ++ "AA"
+            3 -> take 3 $ decodeQuartet $ map base64CharToWord8 $ ws ++ "A"
             _ -> decodeQuartet (map base64CharToWord8 $ take 4 ws) ++ base64StringToWord8List (drop 4 ws)
           where base64CharToWord8 x = fromMaybe (error $ show x) (lookup x $ zip base64Alphabet [0..63])
 
