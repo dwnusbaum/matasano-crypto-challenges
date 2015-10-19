@@ -1,4 +1,4 @@
-module Challenge3 (
+module Set1.Challenge3 (
     main,
 ) where
 
