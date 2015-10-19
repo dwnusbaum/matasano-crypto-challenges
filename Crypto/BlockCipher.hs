@@ -45,10 +45,10 @@ encryptECBorCBC plaintext = do
     mode <- randomRIO (0, 1) :: IO Int
     case mode of
         0 -> do
-            putStrLn "The encryption oracele chose to encrypt using ECB."
+            putStrLn "The encryption oracle chose to encrypt using ECB."
             return $ encrypt_AES128_ECB key bytes'
         1 -> do
-            putStrLn "The encryption oracele chose to encrypt using CBC."
+            putStrLn "The encryption oracle chose to encrypt using CBC."
             iv <- randomBytes 16
             return $ encrypt_AES128_CBC iv key bytes'
         _ -> error "BlockCipher.hs: The random number wasn't 0 or 1!"
