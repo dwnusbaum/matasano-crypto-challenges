@@ -2,7 +2,7 @@ module Set1.Challenge8 (
     main
 ) where
 
-import Crypto.AES
+import Crypto.BlockCipher
 import Data.List.Utils
 
 main :: IO ()
