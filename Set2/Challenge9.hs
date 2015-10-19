@@ -2,11 +2,15 @@ module Set2.Challenge9 (
     main
 ) where
 
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as C
+
 import Crypto.PKCS7
 
 main :: IO ()
 main = do
-    print $ padPlaintext 20 "YELLOW SUBMARINE"
+    let plaintext = "YELLOW SUBMARINE"
+    print $ C.unpack $ B.pack $ padPlaintext 20 $ B.unpack $ C.pack plaintext
     putStrLn "Should be:"
     print "YELLOW SUBMARINE\x04\x04\x04\x04"
 

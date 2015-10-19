@@ -6,11 +6,8 @@ module Crypto.PKCS7 (
 
 import Data.Word (Word8)
 
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Char8 as C
-
-padPlaintext :: Int -> String -> String
-padPlaintext blockSize text = C.unpack . B.pack . (++ pad padLength) . B.unpack . C.pack $ text
+padPlaintext :: Int -> [Word8] -> [Word8]
+padPlaintext blockSize text = text ++ pad padLength
   where padLength = blockSize - length text `mod` blockSize
 
 pad :: Int -> [Word8]
