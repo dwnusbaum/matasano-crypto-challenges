@@ -45,7 +45,7 @@ encrypt_AES128_CBC :: InitializationVector -> Cipher
 encrypt_AES128_CBC iv key input = go iv blocks
   where go _ [] = []
         go lastCiphertext (p:ps) = ciphertext ++ go ciphertext ps
-          where ciphertext = (decrypt aes128 key) $ zipWith xor p lastCiphertext
+          where ciphertext = (encrypt aes128 key) $ zipWith xor p lastCiphertext
         blocks = input `chunksOf` blockSize aes128
 
 detectECBModeEncryption :: [Ciphertext] -> (Ciphertext, Int)
