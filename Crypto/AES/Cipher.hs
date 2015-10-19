@@ -1,9 +1,8 @@
 {-# OPTIONS_GHC -Wall #-}
 
-module AES (
+module Crypto.AES.Cipher (
     BlockCipher(..),
     Cipher,
-    CipherMode,
     aes128,
 ) where
 
@@ -15,12 +14,12 @@ import Data.Vector (Vector, (!))
 
 import qualified Data.Vector as V
 
-import RijndaelField
+import Crypto.AES.RijndaelField
+import Data.Function.Utils
 import Data.Vector.Utils
 
 type Cipher = Key -> [Word8] -> [Word8]
 type Key = [Word8]
-type CipherMode = BlockCipher -> Cipher
 type RoundKey = Vector (Vector Word8)
 type State = Vector (Vector Word8)
 
@@ -31,7 +30,11 @@ data BlockCipher = BlockCipher {
 }
 
 aes128 :: BlockCipher
-aes128 = BlockCipher decryptAES encryptAES 16
+aes128 = BlockCipher {
+        decrypt = decryptAES,
+        encrypt = encryptAES,
+        blockSize = 16
+    }
 
 -- Encrypts a single block of data using AES and the given key. The input must
 -- have exactly 16 bytes.
@@ -54,13 +57,13 @@ decryptAES key = fromStateArray . inverseCipher . toStateArray
 -- Turn the 16 byte key into a vector of 11 round keys, where each round key is
 -- a vector of 4 4-Byte words
 keyExpansion :: Key -> Vector RoundKey
-keyExpansion key = loop 4 keyState `chunksOfV` 4
+keyExpansion key = loop 4 keyState `chunksOf` 4
   where loop 44 keys = keys
         loop i keys
           | i `mod` 4 == 0 = loop (i + 1) $ keys `V.snoc` (keys ! (i - 4) `fieldPolyAdd` (subWord (rotWord temp) `fieldPolyAdd` rCon (i `div` 4)))
           | otherwise = loop (i + 1) $ keys `V.snoc` (keys ! (i - 4) `fieldPolyAdd` temp)
           where temp = keys ! (i - 1)
-        keyState = V.fromList key `chunksOfV` 4
+        keyState = V.fromList key `chunksOf` 4
 
 -- Substitute every byte in vector of bytes using the sBox
 subWord :: Vector Word8 -> Vector Word8
@@ -137,17 +140,17 @@ inverseShiftRows = V.imap (\i -> applyN (4 - i) rotWord)
 -- Multiplies the columns by the fixed, invertible polynomial in the Rijndael
 -- finite field.
 mixColumns :: State -> State
-mixColumns = transposeV . V.map multiplyFixed . transposeV
+mixColumns = transpose . V.map multiplyFixed . transpose
   where multiplyFixed = fieldPolyMultiply $ V.fromList [0x02, 0x01, 0x01, 0x03]
 
 -- Multiplies the columns by the inverse of the polynomial from mixColumns.
 inverseMixColumns :: State -> State
-inverseMixColumns = transposeV . V.map multiplyFixedInverse . transposeV
+inverseMixColumns = transpose . V.map multiplyFixedInverse . transpose
   where multiplyFixedInverse = fieldPolyMultiply $ V.fromList [0x0e, 0x09, 0x0d, 0x0b]
 
 -- Adds the round key to the state
 addRoundKey :: RoundKey -> State -> State
-addRoundKey roundKey = transposeV . V.zipWith fieldPolyAdd roundKey . transposeV
+addRoundKey roundKey = transpose . V.zipWith fieldPolyAdd roundKey . transpose
 
 -- Transforms a list of bytes into the state array used by the cipher
 toStateArray :: [Word8] -> State

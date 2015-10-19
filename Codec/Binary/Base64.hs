@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 
-module Base64 (
+module Codec.Binary.Base64 (
     encodeBase64,
     decodeBase64
 ) where

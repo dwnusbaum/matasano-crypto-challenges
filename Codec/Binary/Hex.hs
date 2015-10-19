@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 
-module Hex (
+module Codec.Binary.Hex (
     encodeHex,
     decodeHex,
     showHex

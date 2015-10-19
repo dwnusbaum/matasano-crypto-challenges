@@ -1,27 +1,17 @@
-{-# OPTIONS_GHC -Wall #-}
-
 module Challenge5 (
-    main,
-    repeatingKeyXor
+    main
 ) where
 
-import Data.Bits
+import Codec.Binary.Hex
+import Crypto.Vignerre
 
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Char8 as C
-
-import Hex
-
-repeatingKeyXor :: String -> String -> String
-repeatingKeyXor string key = C.unpack $ B.pack $ process stringBytes repeatedKey
-    where process [] _ = []
-          process _ [] = error "Key should not have been shorter than input."
-          process (s:ss) (k:ks) = s `xor` k : process ss ks
-          repeatedKey = concat $ replicate (length stringBytes `div` length keyBytes + 1) keyBytes
-          stringBytes = B.unpack $ C.pack string
-          keyBytes = B.unpack $ C.pack key
+expectedHex :: String
+expectedHex = "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f"
 
 main :: IO ()
-main = putStrLn $ encodeHex $ repeatingKeyXor input key
+main = do
+    putStrLn (encodeHex $ repeatingKeyXor input key)
+    putStrLn "Should match:"
+    putStrLn expectedHex
   where input = "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal"
         key = "ICE"

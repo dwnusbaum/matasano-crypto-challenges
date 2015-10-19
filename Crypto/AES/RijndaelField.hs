@@ -1,13 +1,12 @@
 {-# OPTIONS_GHC -Wall #-}
 
-module RijndaelField (
+module Crypto.AES.RijndaelField (
     fieldAdd,
     fieldMultiply,
     fieldPolyAdd,
     fieldPolyMultiply,
     rCon,
-    rotWord,
-    applyN
+    rotWord
 ) where
 
 import Data.Bits
@@ -16,6 +15,8 @@ import Data.Word (Word8)
 import Data.Vector (Vector, (!))
 
 import qualified Data.Vector as V
+
+import Data.Function.Utils
 
 -- Add 2 bytes in the Rijndael finite field
 fieldAdd :: Word8 -> Word8 -> Word8
@@ -63,8 +64,6 @@ fieldPolyMultiply a b = V.fromList [
 rotWord :: Vector Word8 -> Vector Word8
 rotWord = fieldPolyMultiply $ V.fromList [0x00, 0x00, 0x00, 0x01]
 
+-- Returns the round constant word array
 rCon :: Int -> Vector Word8
 rCon i = V.fromList [applyN (i - 1) (fieldMultiply 0x02) 0x01, 0x0, 0x0, 0x0]
-
-applyN :: Int -> (a -> a) -> a -> a
-applyN n f = foldr (.) id (replicate n f)
