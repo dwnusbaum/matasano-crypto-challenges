@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 
-module Crypto.Vignerre (
+module Crypto.Vigenere (
     crackRepeatingKeyXor,
     repeatingKeyXor
 ) where

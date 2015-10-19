@@ -3,7 +3,7 @@ module Set1.Challenge6 (
 ) where
 
 import Codec.Binary.Base64
-import Crypto.Vignerre
+import Crypto.Vigenere
 
 main :: IO ()
 main = do
