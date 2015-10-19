@@ -1,5 +1,9 @@
 {-# OPTIONS_GHC -Wall #-}
 
+-- This module provides an implementation of AES for 128-bit keys. It should
+-- only be used for learning purposes. Do not use it in production code, or
+-- anything that needs to be secure.
+
 module Crypto.AES.Cipher (
     BlockCipher(..),
     Cipher,
