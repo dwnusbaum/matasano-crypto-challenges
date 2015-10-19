@@ -13,5 +13,5 @@ main = do
     file <- readFile "Set1/data/7.txt"
     let fileBytes = B.unpack $ C.pack $ decodeBase64 $ filter (/= '\n') file
     let key =  B.unpack $ C.pack "YELLOW SUBMARINE"
-    let decrypted = aes128ecb decrypt key fileBytes
+    let decrypted = decrypt_AES128_ECB key fileBytes
     putStrLn $ C.unpack $ B.pack decrypted
