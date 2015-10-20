@@ -70,6 +70,6 @@ ecbEncryptionOracle input = encrypt_AES128_ECB key plaintext
 findBlockSize :: ([Word8] -> Ciphertext) -> Int
 findBlockSize oracle = go 1
   where go n
-          | take n ciphertext == take n (drop n ciphertext) = n `div` 2
+          | take n ciphertext == take n (drop n ciphertext) = n
           | otherwise = go (n + 1)
-          where ciphertext = oracle $ replicate n 0x20
+          where ciphertext = oracle $ replicate (n * 2) 0x20
