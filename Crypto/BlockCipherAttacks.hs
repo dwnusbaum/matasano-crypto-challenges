@@ -4,8 +4,8 @@ module Crypto.BlockCipherAttacks (
     findECBModeEncryption,
     detectECBorCBC,
     encryptECBorCBC,
-    ecbEncryptionOracle,
-    findBlockSize
+    crackECBEncryption,
+    ecbEncryptionOracle
 ) where
 
 import Data.List (maximumBy)
@@ -62,10 +62,14 @@ encryptECBorCBC plaintext = do
             return $ padPlaintext 16 $ prefix ++ B.unpack (C.pack plaintext) ++ suffix
 
 ecbEncryptionOracle :: [Word8] -> Ciphertext
-ecbEncryptionOracle input = encrypt_AES128_ECB key plaintext
+ecbEncryptionOracle input = encrypt_AES128_ECB secretKey plaintext
   where plaintext = padPlaintext 16 $ input ++ secret
-        secret = B.unpack $ C.pack $ decodeBase64 "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK"
-        key = B.unpack $ C.pack $ decodeBase64 "VJAJGGV9o9eZSmJZ3PqY+Q=="
+
+secret :: [Word8]
+secret = B.unpack $ C.pack $ decodeBase64 "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK"
+
+secretKey :: [Word8]
+secretKey = B.unpack $ C.pack $ decodeBase64 "VJAJGGV9o9eZSmJZ3PqY+Q=="
 
 findBlockSize :: ([Word8] -> Ciphertext) -> Int
 findBlockSize oracle = go 1
@@ -73,3 +77,18 @@ findBlockSize oracle = go 1
           | take n ciphertext == take n (drop n ciphertext) = n
           | otherwise = go (n + 1)
           where ciphertext = oracle $ replicate (n * 2) 0x20
+
+crackECBEncryption :: ([Word8] -> Ciphertext) -> [Word8]
+crackECBEncryption oracle = case detectECBorCBC $ oracle $ replicate 100 0x20 of
+    ECB -> go 1 (detectedBlockSize - 1) []
+    CBC -> error "BlockCipherAttacks.hs: Oracle was using CBC encryption"
+  where go bi (-1) ps
+          | length ps == unknownLength = ps -- Decrypted whole string
+          | otherwise = go (bi + 1) (detectedBlockSize - 1) ps -- Decrypt next block
+        go bi n ps = go bi (n - 1) $ ps ++ [last $ take (bi * detectedBlockSize) correctLastByte]
+          where ciphertext = take (bi * detectedBlockSize) $ oracle firstBlock
+                firstBlock = replicate n 0x20
+                lastByteDictionary = map (\b -> firstBlock ++ ps ++ [b]) [0..255]
+                correctLastByte = head $ filter (\x -> take (bi * detectedBlockSize) (oracle x) == ciphertext) lastByteDictionary
+        detectedBlockSize = findBlockSize oracle
+        unknownLength = length $ oracle []
