@@ -85,10 +85,12 @@ crackECBEncryption oracle = case detectECBorCBC $ oracle $ replicate 100 0x20 of
   where go bi (-1) ps
           | length ps == unknownLength = ps -- Decrypted whole string
           | otherwise = go (bi + 1) (detectedBlockSize - 1) ps -- Decrypt next block
-        go bi n ps = go bi (n - 1) $ ps ++ [last $ take (bi * detectedBlockSize) correctLastByte]
+        go bi n ps = case correctPlaintext of
+            [] -> ps -- We got to the padding
+            _  -> go bi (n - 1) $ drop n $ head correctPlaintext
           where ciphertext = take (bi * detectedBlockSize) $ oracle firstBlock
                 firstBlock = replicate n 0x20
                 lastByteDictionary = map (\b -> firstBlock ++ ps ++ [b]) [0..255]
-                correctLastByte = head $ filter (\x -> take (bi * detectedBlockSize) (oracle x) == ciphertext) lastByteDictionary
+                correctPlaintext = filter (\x -> take (bi * detectedBlockSize) (oracle x) == ciphertext) lastByteDictionary
         detectedBlockSize = findBlockSize oracle
         unknownLength = length $ oracle []

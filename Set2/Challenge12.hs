@@ -9,4 +9,7 @@ import Codec.Binary.Base64
 import Crypto.BlockCipherAttacks
 
 main :: IO ()
-main = putStrLn $ C.unpack $ B.pack $ crackECBEncryption ecbEncryptionOracle
+main = do
+    putStrLn "Cracking the encryption takes ~ 2.5 minutes."
+    putStrLn "Plaintext:"
+    putStrLn $ C.unpack $ B.pack $ crackECBEncryption ecbEncryptionOracle
