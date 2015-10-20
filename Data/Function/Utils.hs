@@ -5,4 +5,5 @@ module Data.Function.Utils (
 ) where
 
 applyN :: Int -> (a -> a) -> a -> a
-applyN n f = foldr (.) id (replicate n f)
+applyN 0 _ x = x
+applyN n f x = applyN (n - 1) f $ f x

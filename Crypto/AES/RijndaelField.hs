@@ -26,23 +26,28 @@ fieldAdd = xor
 fieldMultiply :: Word8 -> Word8 -> Word8
 fieldMultiply a b
   | b == 0x01 = a
-  | popCount b == 1 = applyN (log2 $ fromIntegral b) xtime a
-  | otherwise = foldl' (\acc x -> fieldMultiply a (bit x) `xor` acc) 0x0 $ bitIndices b
-  where bitIndices = flip filter [7,6..0] . testBit
+  | popCount b == 1 = applyN (log2 b) xtime a
+  | otherwise = foldl' sumMultiplyBits 0x0 $ [7,6..0]
+  where sumMultiplyBits acc i
+          | b `testBit` i = fieldMultiply a (bit i) `fieldAdd` acc
+          | otherwise = acc
 
 xtime :: Word8 -> Word8
-xtime x = if x `testBit` 7
-            then (x `shiftL` 1) `xor` 0x1b
-            else x `shiftL` 1
+xtime x
+  | x `testBit` 7 = (x `shiftL` 1) `xor` 0x1b
+  | otherwise = x `shiftL` 1
 
-log2 :: Int -> Int
-log2 n
-  | n < 1 = error "log2: argument must be positive"
-  | otherwise = go 0 1
-  where
-    go pow prod
-      | prod < n = go (pow + 1) (2 * prod)
-      | otherwise = pow
+-- Only works for powers of 2!!
+log2 :: Word8 -> Int
+log2 0x80 = 8
+log2 0x40 = 7
+log2 0x20 = 6
+log2 0x10 = 5
+log2 0x08 = 4
+log2 0x06 = 3
+log2 0x04 = 2
+log2 0x02 = 1
+log2 _ = error "RijndaelField.hs: Input was not a power of 2"
 
 -- Add 2 polynomials whose coefficients are elements of the Rijndael finite
 -- field.
