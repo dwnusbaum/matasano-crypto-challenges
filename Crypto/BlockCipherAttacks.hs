@@ -1,23 +1,27 @@
 {-# OPTIONS_GHC -Wall #-}
 
-module Crypto.BlockCipher (
+module Crypto.BlockCipherAttacks (
     findECBModeEncryption,
     detectECBorCBC,
-    encryptECBorCBC
+    encryptECBorCBC,
+    ecbEncryptionOracle,
+    findBlockSize
 ) where
 
 import Data.List (maximumBy)
 import Data.Ord (comparing)
 import Data.Word (Word8)
-import System.Random
+import System.Random (randomRIO)
 
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C
 import qualified Data.Set as S
 
+import Codec.Binary.Base64
 import Crypto.AES
 import Crypto.PKCS7
 import Data.List.Utils
+import System.Random.Utils
 
 type Ciphertext = [Word8]
 type CiphertextBlocks = [Ciphertext]
@@ -53,13 +57,19 @@ encryptECBorCBC plaintext = do
             return $ encrypt_AES128_CBC iv key bytes'
         _ -> error "BlockCipher.hs: The random number wasn't 0 or 1!"
   where randomPaddingPlaintext = do
-            prefixLength <- randomRIO (5, 10)
-            suffixLength <- randomRIO (5, 10)
-            prefix <- randomBytes prefixLength
-            suffix <- randomBytes suffixLength
+            prefix <- randomRIO (5, 10) >>= randomBytes
+            suffix <- randomRIO (5, 10) >>= randomBytes
             return $ padPlaintext 16 $ prefix ++ B.unpack (C.pack plaintext) ++ suffix
 
-randomBytes :: Int -> IO [Word8]
-randomBytes n = do
-    gen <- getStdGen
-    return $ take n $ randomRs (0, 255) gen
+ecbEncryptionOracle :: [Word8] -> Ciphertext
+ecbEncryptionOracle input = encrypt_AES128_ECB key plaintext
+  where plaintext = padPlaintext 16 $ input ++ secret
+        secret = B.unpack $ C.pack $ decodeBase64 "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK"
+        key = B.unpack $ C.pack $ decodeBase64 "VJAJGGV9o9eZSmJZ3PqY+Q=="
+
+findBlockSize :: ([Word8] -> Ciphertext) -> Int
+findBlockSize oracle = go 1
+  where go n
+          | take n ciphertext == take n (drop n ciphertext) = n `div` 2
+          | otherwise = go (n + 1)
+          where ciphertext = oracle $ replicate n 0x20

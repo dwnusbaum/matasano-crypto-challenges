@@ -3,7 +3,7 @@ module Set2.Challenge11 (
 ) where
 
 import Codec.Binary.Base64
-import Crypto.BlockCipher
+import Crypto.BlockCipherAttacks
 
 main :: IO ()
 main = do

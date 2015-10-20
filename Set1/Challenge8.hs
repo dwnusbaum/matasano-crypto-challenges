@@ -6,7 +6,7 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C
 
 import Codec.Binary.Hex
-import Crypto.BlockCipher
+import Crypto.BlockCipherAttacks
 import Data.List.Utils
 
 -- Fix this
