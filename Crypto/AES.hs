@@ -19,8 +19,11 @@ type Action = BlockCipher -> Cipher
 type InitializationVector = [Word8]
 
 ecb :: BlockCipher -> Action -> Cipher
-ecb cipher action key input = verifyBlockSize cipher input $ concatMap (action cipher key) blocks
-  where blocks = input `chunksOf` blockSize cipher
+ecb cipher action key input = concatMap (action cipher key) blocks
+  where blocks = (padNulls input) `chunksOf` blockSize cipher
+        padNulls text = case length text `mod` blockSize cipher of
+            0 -> text
+            n -> text ++ replicate (blockSize cipher - n) 0
 
 decrypt_AES128_ECB :: Cipher
 decrypt_AES128_ECB = ecb aes128 decrypt

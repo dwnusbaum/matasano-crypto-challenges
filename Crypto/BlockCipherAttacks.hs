@@ -63,7 +63,7 @@ encryptECBorCBC plaintext = do
 
 ecbEncryptionOracle :: [Word8] -> Ciphertext
 ecbEncryptionOracle input = encrypt_AES128_ECB secretKey plaintext
-  where plaintext = padPlaintext 16 $ input ++ secret
+  where plaintext = input ++ secret
 
 secret :: [Word8]
 secret = B.unpack $ C.pack $ decodeBase64 "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK"
