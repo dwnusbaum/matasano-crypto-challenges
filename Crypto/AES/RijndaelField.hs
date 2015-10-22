@@ -39,14 +39,13 @@ xtime x
 
 -- Only works for powers of 2!!
 log2 :: Word8 -> Int
-log2 0x80 = 8
-log2 0x40 = 7
-log2 0x20 = 6
-log2 0x10 = 5
-log2 0x08 = 4
-log2 0x06 = 3
-log2 0x04 = 2
-log2 0x02 = 1
+log2 2 = 1
+log2 4 = 2
+log2 8 = 3
+log2 16 = 4
+log2 32 = 5
+log2 64 = 6
+log2 128 = 7
 log2 _ = error "RijndaelField.hs: Input was not a power of 2"
 
 -- Add 2 polynomials whose coefficients are elements of the Rijndael finite
