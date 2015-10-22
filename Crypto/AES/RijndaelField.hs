@@ -27,7 +27,7 @@ fieldMultiply :: Word8 -> Word8 -> Word8
 fieldMultiply a b
   | b == 0x01 = a
   | popCount b == 1 = applyN (log2 b) xtime a
-  | otherwise = foldl' sumMultiplyBits 0x0 $ [7,6..0]
+  | otherwise = foldl' sumMultiplyBits 0x0 [7,6..0]
   where sumMultiplyBits acc i
           | b `testBit` i = fieldMultiply a (bit i) `fieldAdd` acc
           | otherwise = acc
