@@ -10,6 +10,6 @@ import Crypto.BlockCipherAttacks
 
 main :: IO ()
 main = do
-    putStrLn "Cracking the encryption takes ~ 2.5 minutes."
+    putStrLn "Cracking the encryption takes ~ 1 minute when compiling with -O2."
     putStrLn "Plaintext:"
     putStrLn $ C.unpack $ B.pack $ crackECBEncryption ecbEncryptionOracle
