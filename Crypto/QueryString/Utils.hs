@@ -1,10 +1,9 @@
 {-# OPTIONS_GHC -Wall #-}
 
-module Crypto.QueryString (
+module Crypto.QueryString.Utils (
     QueryString(..),
     profileFor,
     decryptQueryString,
-    encryptQueryString,
     encodeQueryString,
     parseEncodedQueryString
 ) where
@@ -20,9 +19,6 @@ import qualified Data.ByteString.Char8 as C
 
 import Codec.Binary.Base64
 import Crypto.AES
-import Crypto.PKCS7
-
-import Debug.Trace
 
 type Key = String
 type Value = String
@@ -35,19 +31,17 @@ data QueryString = QueryString [KeyValuePair]
 instance Show QueryString where
     show = encodeQueryString
 
-profileFor :: String -> QueryString
-profileFor s = QueryString [("email", sanitized), ("uid", "10"), ("role", "user")]
-  where sanitized = filter (\c -> c /= '=' && c /= '&') s
-
 secretKey :: [Word8]
 secretKey = B.unpack $ C.pack $ decodeBase64 "VJAJGGV9o9eZSmJZ3PqY+Q=="
 
-encryptQueryString :: QueryString -> [Word8]
-encryptQueryString qs = encrypt_AES128_ECB secretKey plaintext
-  where plaintext = padPlaintext 8 $ B.unpack $ C.pack $ encodeQueryString qs
+profileFor :: String -> [Word8]
+profileFor s = encryptQueryString $ QueryString [("email", sanitized), ("uid", "10"), ("role", "user")]
+  where sanitized = filter (\c -> c /= '=' && c /= '&') s
+        encryptQueryString qs = encrypt_AES128_ECB secretKey plaintext
+          where plaintext = B.unpack $ C.pack $ encodeQueryString qs
 
 decryptQueryString :: [Word8] -> Either ParseError QueryString
-decryptQueryString bs = parseEncodedQueryString $ traceShowId plaintext
+decryptQueryString bs = parseEncodedQueryString plaintext
   where plaintext = C.unpack $ B.pack $ decrypt_AES128_ECB secretKey bs
 
 -- Encodes a query string as a string
