@@ -12,4 +12,4 @@ main :: IO ()
 main = do
     putStrLn "Cracking the encryption takes ~ 1.5 minutes when compiled with -O2."
     putStrLn "Plaintext:"
-    putStrLn $ C.unpack $ B.pack $ crackECBEncryption ecbEncryptionOracleSimple
+    putStrLn $ C.unpack $ B.pack $ crackECBEncryption ecbEncryptionOracleHard

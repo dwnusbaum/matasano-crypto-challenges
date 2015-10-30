@@ -5,7 +5,8 @@ module Crypto.BlockCipherAttacks (
     detectECBorCBC,
     encryptECBorCBC,
     crackECBEncryption,
-    ecbEncryptionOracle
+    ecbEncryptionOracleSimple,
+    ecbEncryptionOracleHard,
 ) where
 
 import Data.List (maximumBy)
@@ -61,9 +62,16 @@ encryptECBorCBC plaintext = do
             suffix <- randomRIO (5, 10) >>= randomBytes
             return $ padPlaintext 16 $ prefix ++ B.unpack (C.pack plaintext) ++ suffix
 
-ecbEncryptionOracle :: [Word8] -> Ciphertext
-ecbEncryptionOracle input = encrypt_AES128_ECB secretKey plaintext
+ecbEncryptionOracleSimple :: [Word8] -> Ciphertext
+ecbEncryptionOracleSimple input = encrypt_AES128_ECB secretKey plaintext
   where plaintext = input ++ secret
+
+ecbEncryptionOracleHard :: [Word8] -> Ciphertext
+ecbEncryptionOracleHard input = encrypt_AES128_ECB secretKey plaintext
+  where plaintext = secretPrefix ++ input ++ secret
+
+secretPrefix :: [Word8]
+secretPrefix = [0x01, 0xc5, 0x06, 0xa7, 0xb2, 0x31, 0x7d, 0x48, 0xee]
 
 secret :: [Word8]
 secret = B.unpack $ C.pack $ decodeBase64 "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK"
@@ -76,21 +84,37 @@ findBlockSize oracle = go 1
   where go n
           | take n ciphertext == take n (drop n ciphertext) = n
           | otherwise = go (n + 1)
-          where ciphertext = oracle $ replicate (n * 2) 0x20
+          where ciphertext = drop (minPrefixLength + n) $ oracle $ replicate (n * 3) 0x20
+        minPrefixLength = length $ takeWhile id $ zipWith (==) firstAttempt secondAttempt
+          where firstAttempt = oracle [0x01]
+                secondAttempt = oracle [0x02]
+
+-- Needs to be tweaked for prefix greater than 1 block in length
+findPrefixLength :: ([Word8] -> Ciphertext) -> Int -> Int
+findPrefixLength oracle detectedBlockSize = go 1
+  where go n
+          | blocksMatch = detectedBlockSize - n
+          | otherwise = go (n + 1)
+          where ciphertext = oracle $ replicate (n + detectedBlockSize * 2) 0x20
+                (first, rest) = splitAt detectedBlockSize $ drop detectedBlockSize ciphertext
+                blocksMatch = first == take detectedBlockSize rest
 
 crackECBEncryption :: ([Word8] -> Ciphertext) -> [Word8]
 crackECBEncryption oracle = case detectECBorCBC $ oracle $ replicate 100 0x20 of
     ECB -> go 1 (detectedBlockSize - 1) []
     CBC -> error "BlockCipherAttacks.hs: Oracle was using CBC encryption"
   where go bi (-1) ps
-          | length ps == unknownLength = ps -- Decrypted whole string
+          | length ps + prefixLength == unknownLength = ps -- Decrypted whole string
           | otherwise = go (bi + 1) (detectedBlockSize - 1) ps -- Decrypt next block
         go bi n ps = case correctPlaintext of
-            [] -> ps -- We got to the padding
-            _  -> go bi (n - 1) $ drop n $ head correctPlaintext
-          where ciphertext = take (bi * detectedBlockSize) $ oracle firstBlock
-                firstBlock = replicate n 0x20
+            [] -> ps -- Nothing matched, so we modified the padding or we messed up
+            (x:_)  -> go bi (n - 1) $ drop (n + prependLength) x
+          where ciphertext = relevant $ oracle firstBlock
+                firstBlock = replicate (n + prependLength) 0x20
                 lastByteDictionary = map (\b -> firstBlock ++ ps ++ [b]) [0..255]
-                correctPlaintext = filter (\x -> take (bi * detectedBlockSize) (oracle x) == ciphertext) lastByteDictionary
+                correctPlaintext = filter (\x -> relevant (oracle x) == ciphertext) lastByteDictionary
+                relevant = take (prefixLength + prependLength + bi * detectedBlockSize)
         detectedBlockSize = findBlockSize oracle
+        prefixLength = findPrefixLength oracle detectedBlockSize
+        prependLength = (detectedBlockSize - prefixLength) `mod` detectedBlockSize
         unknownLength = length $ oracle []
