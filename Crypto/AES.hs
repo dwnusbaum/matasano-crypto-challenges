@@ -20,7 +20,7 @@ type InitializationVector = [Word8]
 
 ecb :: BlockCipher -> Action -> Cipher
 ecb cipher action key input = concatMap (action cipher key) blocks
-  where blocks = (padNulls input) `chunksOf` blockSize cipher
+  where blocks = padNulls input `chunksOf` blockSize cipher
         padNulls text = case length text `mod` blockSize cipher of
             0 -> text
             n -> text ++ replicate (blockSize cipher - n) 0
