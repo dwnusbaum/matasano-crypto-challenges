@@ -60,7 +60,7 @@ encryptECBorCBC plaintext = do
   where randomPaddingPlaintext = do
             prefix <- randomRIO (5, 10) >>= randomBytes
             suffix <- randomRIO (5, 10) >>= randomBytes
-            return $ padPlaintext 16 $ prefix ++ B.unpack (C.pack plaintext) ++ suffix
+            return $ padPKCS7 16 $ prefix ++ B.unpack (C.pack plaintext) ++ suffix
 
 ecbEncryptionOracleSimple :: [Word8] -> Ciphertext
 ecbEncryptionOracleSimple input = encrypt_AES128_ECB secretKey plaintext
