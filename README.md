@@ -1,5 +1,5 @@
 My Haskell solutions to the [Matasano Crypto Challenges](http://cryptopals.com/).
 
-Set 1 is completed.
+Sets 1 and 2 are completed.
 
-I am currently working on Set 2.
+I am currently working on Set 3.
