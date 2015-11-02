@@ -7,8 +7,12 @@ module Crypto.BlockCipherAttacks (
     crackECBEncryption,
     ecbEncryptionOracleSimple,
     ecbEncryptionOracleHard,
+    cbcEncryptionOracle,
+    containsAdminBlock,
+    makeAdminBlock,
 ) where
 
+import Data.Bits (xor)
 import Data.List (maximumBy)
 import Data.Ord (comparing)
 import Data.Word (Word8)
@@ -118,3 +122,30 @@ crackECBEncryption oracle = case detectECBorCBC $ oracle $ replicate 100 0x20 of
         prefixLength = findPrefixLength oracle detectedBlockSize
         prependLength = (detectedBlockSize - prefixLength) `mod` detectedBlockSize
         unknownLength = length $ oracle []
+
+cbcAdminIV :: [Word8]
+cbcAdminIV = [0x53, 0xbf, 0x32, 0xd1, 0x05, 0xae, 0xc2, 0x40, 0x51, 0xf6, 0x77, 0x84, 0x0f, 0x4d, 0x03, 0xc6]
+
+cbcEncryptionOracle :: [Word8] -> Ciphertext
+cbcEncryptionOracle input = encrypt_AES128_CBC cbcAdminIV secretKey $ padPKCS7 16 $ prefix ++ sanitized ++ suffix
+  where prefix = B.unpack $ C.pack "comment1=cooking%20MCs;userdata="
+        suffix = B.unpack $ C.pack ";comment2=%20like%20a%20pound%20of%20bacon"
+        sanitized = filter (\x -> x /= 0x3b && x /= 0x3d) input
+
+containsAdminBlock :: Ciphertext -> Bool
+containsAdminBlock ciphertext = case validatePKCS7 plaintext of
+    Left () -> False
+    Right pt -> elem "admin=true" $ C.unpack (B.pack pt) `splitOn` ';'
+  where plaintext = decrypt_AES128_CBC cbcAdminIV secretKey ciphertext
+
+makeAdminBlock :: ([Word8] -> Ciphertext) -> Ciphertext
+makeAdminBlock oracle = concat (take 2 ciphertextBlocks) ++ scrambled ++ concat (drop 3 ciphertextBlocks)
+  where ciphertextBlocks = oracle (B.unpack $ C.pack "BBBBBBBBBBBBBBBB:admin<true:BBBB") `chunksOf` 16
+        scrambled = (head tb `xor` 0x01) : bytes1To5 ++ [tb !! 6 `xor` 0x01] ++ bytes7To10 ++ [tb !! 11 `xor` 0x01] ++ bytes12To15
+          where tb = ciphertextBlocks !! 2
+                bytes1To5 = take 5 $ drop 1 tb
+                bytes7To10 = take 4 $ drop 7 tb
+                bytes12To15 = drop 12 tb
+  -- ________________ ________________ ________________ ________________
+  -- comment1=cooking %20MCs;userdata= BBBBBBBBBBBBBBBB :admin<true;BBBB
+
